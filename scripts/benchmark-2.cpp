@@ -1,4 +1,4 @@
-// #ifndef _WIN64
+#ifndef _WIN64
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,126 +8,49 @@
 #include <chrono>
 
 
-// #ifdef WIN32
+#ifdef WIN32
 
-// extern "C" void stress_cpu(int operations);
-// extern "C" int cpu_brand(char brand[]);
+ extern "C" void stress_cpu(int operations);
 
-// #else // else go ahead and use the Linux compiler and hope that it does not try to optimize this code
+
+ #else // else go ahead and use the Linux compiler and hope that it does not try to optimize this code
 
 void stress_cpu(int operations)
 {
-#define M1 asm("addl $1, %eax\nxorl $1, %eax\n");
-#define M2 M1 M1 M1 M1 M1
-#define M3 M2 M2 M2 M2 M2
-#define M4 M3 M3 M3 M3 M3
+#define more asm("addl $1, %eax\nxorl $1, %eax\n");
+#define Much_more more more more more more
+#define MMuch_more Much_more Much_more Much_more Much_more Much_more
+#define M4 MMuch_more MMuch_more MMuch_more MMuch_more MMuch_more
 #define M5 M4 M4 M4 M4 M4
-#define M6 M5 M5 M5 M5 M5
+#define bunch_of_asm M5 M5 M5 M5 M5
 
 	asm("movl $1, %eax\n");
 	for (int i = 0; i < operations; i++)
 	{
-		M6
-		M6
+		bunch_of_asm
+		bunch_of_asm
 	}
 }
 
-long long cpu_brand0()
-{
-	asm(
-		"movl $0x80000002, %eax\n"
-		"cpuid\n"
-		"xchg %rbx, %rax\n"
-		"shl $32, %rax\n"
-		"shl $32, %rbx\n"
-		"shr $32, %rbx\n"
-		"add %rbx, %rax\n"
-	);
-}
 
-long long cpu_brand1()
-{
-	asm(
-		"movl $0x80000002, %eax\n"
-		"cpuid\n"
-		"mov %rdx, %rax\n"
-		"shl $32, %rax\n"
-		"shl $32, %rcx\n"
-		"shr $32, %rcx\n"
-		"add %rcx, %rax\n"
-	);
-}
+#endif
 
-long long cpu_brand2()
-{
-	asm(
-		"movl $0x80000003, %eax\n"
-		"cpuid\n"
-		"xchg %rbx, %rax\n"
-		"shl $32, %rax\n"
-		"shl $32, %rbx\n"
-		"shr $32, %rbx\n"
-		"add %rbx, %rax\n"
-	);
-}
+#ifdef WIN32
 
-long long cpu_brand3()
-{
-	asm(
-		"movl $0x80000003, %eax\n"
-		"cpuid\n"
-		"mov %rdx, %rax\n"
-		"shl $32, %rax\n"
-		"shl $32, %rcx\n"
-		"shr $32, %rcx\n"
-		"add %rcx, %rax\n"
-	);
-}
+#include <windows.h>
+#define pthread_t DWORD
+#define pthread_create(THREAD_ID_PTR, ATTR, ROUTINE, PARAMS) CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)ROUTINE,(void*)(PARAMS),0,THREAD_ID_PTR)
+#define sleep(ms) Sleep(ms)
 
-long long cpu_brand4()
-{
-	asm(
-		"movl $0x80000004, %eax\n"
-		"cpuid\n"
-		"xchg %rbx, %rax\n"
-		"shl $32, %rax\n"
-		"shl $32, %rbx\n"
-		"shr $32, %rbx\n"
-		"add %rbx, %rax\n"
-	);
-}
-
-long long cpu_brand5()
-{
-	asm(
-		"movl $0x80000004, %eax\n"
-		"cpuid\n"
-		"mov %rdx, %rax\n"
-		"shl $32, %rax\n"
-		"shl $32, %rcx\n"
-		"shr $32, %rcx\n"
-		"add %rcx, %rax\n"
-	);
-}
-
-// #endif
-
-// #ifdef WIN32
-
-// #include <windows.h>
-// #define pthread_t DWORD
-// #define pthread_create(THREAD_ID_PTR, ATTR, ROUTINE, PARAMS) CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)ROUTINE,(void*)(PARAMS),0,THREAD_ID_PTR)
-// #define sleep(ms) Sleep(ms)
-
-// #else // Linux
+#else // Linux
 
 #include <pthread.h>
 #include <unistd.h>
 
-//#endif
+#endif
 
-const int MAX_THREADS = std::thread::hardware_concurrency();
-const int OPERATIONS = 10000000;
+int MAX_THREADS = std::thread::hardware_concurrency();
+int OPERATIONS = 1000000;
 int threads_active;
 
 void* thread(void*)
@@ -141,34 +64,15 @@ void* thread(void*)
 
 int main(int argc, char** argv)
 {
-// #ifdef WIN32
-// 	char brand[48 + 16];
-// 	brand[48] = 0;
-// 	if (cpu_brand(brand)) // retrieve the processor brand -- this requires assembly code
-// 	{
-// 		std::cout << "CPU: " << brand << std::endl;
-// 	}
-// #else
-	// retrieve the processor brand -- this requires assembly code
-	union
-	{
-		char brand[48 + 16];
-		long long x[6];
-	};
-	brand[48] = 0;
-	x[0] = cpu_brand0();
-	x[1] = cpu_brand1();
-	x[2] = cpu_brand2();
-	x[3] = cpu_brand3();
-	x[4] = cpu_brand4();
-	x[5] = cpu_brand5();
-	std::cout << "CPU: " << brand << std::endl;
-// #endif
+	if (argc > 2){
+		OPERATIONS = atoi(argv[2]);
+		MAX_THREADS = atoi(argv[1]);
+	}
 	unsigned long long start_ms, end_ms;
 
 	if (MAX_THREADS > 1)
 	{
-		std::cout << "testing multi-core performance with " << MAX_THREADS << " threads" << std::endl;
+		std::cout << "Testing multi-core performance with " << MAX_THREADS << " threads (higher == better)                     " ;//<< "\n";
 		start_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(); // start milliseconds
 		threads_active = 0;
 		for (int i = 1; i < MAX_THREADS; i++)
@@ -181,18 +85,18 @@ int main(int argc, char** argv)
 		while (threads_active)
 			sleep(1); // sleep one millisecond
 		end_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(); // end milliseconds
-		std::cout << "multi-core score: " << SCORE(MAX_THREADS) << std::endl;
+		std::cout << "                        multi-core score: " << SCORE(MAX_THREADS);// << "\n";
 	}
 
 	start_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-	std::cout << "testing single-core performance" << std::endl;
+	std::cout << "                                             testing single-core performance                 " ;//<< "\n";
 	stress_cpu(OPERATIONS);
 	end_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-	std::cout << "single-core score: " << SCORE(1) << std::endl << std::endl << "Ctrl+C to end program" << std::endl;
+	std::cout << " single-core score: " << SCORE(1) ;//<< "\n";
 
-	std::cin.get();
+	
 
 	return 0;
 }
 
-//#endif
+#endif
