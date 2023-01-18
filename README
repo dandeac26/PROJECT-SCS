@@ -1,0 +1,5 @@
+The app.py is the initial state of the application, but the final one is in /scripts/interface.py - run it with "python interface.py" 
+- requirements:
+  gnuplot
+  pyqt5
+  pycrypt
