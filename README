@@ -2,4 +2,10 @@ The app.py is the initial state of the application, but the final one is in /scr
 - requirements:
   gnuplot
   pyqt5
-  pycrypt
+  lcrypto
+  openssl ( distribution specific )
+  
+  compile command for the main test script:
+  gcc -pthread benchmark-passwords.c -lssl -lcrypto -o pass-benchmark
+  
+  
